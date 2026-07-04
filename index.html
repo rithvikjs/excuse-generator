@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Excuse Generator</title>
+</head>
+<body>
+  <h1>Excuse Generator</h1>
+  <button onclick="generate()">Give me an excuse</button>
+  <p id="output"></p>
+
+  <script>
+    const excuses = [
+      "My cat deleted the file.",
+      "I was mentally preparing.",
+      "Mercury is in retrograde."
+    ];
+    function generate() {
+      const random = excuses[Math.floor(Math.random() * excuses.length)];
+      document.getElementById("output").innerText = random;
+    }
+  </script>
+</body>
+</html>
