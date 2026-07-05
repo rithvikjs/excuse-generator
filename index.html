@@ -1,14 +1,443 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Excuse Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: #5286a8;
+      overflow: hidden;
+    }
+    * {
+      box-sizing: border-box;
+      -webkit-font-smoothing: none;
+      font-smooth: never;
+    }
+    body {
+      font-family: 'Silkscreen', monospace;
+      color: #000;
+    }
+    svg {
+      image-rendering: pixelated;
+      shape-rendering: crispEdges;
+    }
+    @keyframes blink {
+      0%, 49% { opacity: 1; }
+      50%, 100% { opacity: 0; }
+    }
+
+    #desktop {
+      position: absolute;
+      inset: 0;
+      user-select: none;
+      cursor: default;
+      background: radial-gradient(120% 120% at 50% 42%, #5f97b8 0%, #4d84a6 55%, #3d6d8c 100%);
+    }
+    #vignette {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      box-shadow: inset 0 0 120px 40px rgba(0,0,0,.28);
+      z-index: 5;
+    }
+    #menu-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      display: none;
+    }
+
+    /* Menu bar */
+    #menu-bar {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 26px;
+      background: #fff;
+      border-bottom: 1px solid #000;
+      display: flex;
+      align-items: stretch;
+      z-index: 50;
+      font-size: 11px;
+    }
+    #menu-bar .mark {
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+    }
+    #menus-container {
+      display: flex;
+      align-items: stretch;
+    }
+    .menu {
+      position: relative;
+      display: flex;
+      align-items: stretch;
+    }
+    .menu-title {
+      display: flex;
+      align-items: center;
+      padding: 0 13px;
+      cursor: default;
+      background: #fff;
+      color: #000;
+    }
+    .menu-title.open {
+      background: #000;
+      color: #fff;
+    }
+    .menu-dropdown {
+      position: absolute;
+      top: 26px;
+      left: 0;
+      min-width: 200px;
+      background: #fff;
+      border: 1px solid #000;
+      box-shadow: 2px 2px 0 #000;
+      padding: 4px 0;
+      z-index: 60;
+      font-size: 11px;
+      display: none;
+    }
+    .menu-dropdown.open {
+      display: block;
+    }
+    .menu-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 26px;
+      padding: 4px 16px;
+      cursor: default;
+      background: #fff;
+      color: #000;
+    }
+    .menu-item.disabled {
+      opacity: .32;
+    }
+    .menu-item.hover {
+      background: #000;
+      color: #fff;
+    }
+    .menu-item span:last-child {
+      opacity: .75;
+    }
+    .menu-divider {
+      height: 1px;
+      background: #000;
+      margin: 4px 6px;
+      opacity: .5;
+    }
+    #menu-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 12px;
+    }
+    #help-btn {
+      width: 15px;
+      height: 15px;
+      border: 1px solid #000;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+    }
+
+    /* Desktop icons */
+    .desktop-icon {
+      position: absolute;
+      width: 84px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: default;
+      z-index: 10;
+    }
+    .desktop-icon .label {
+      font-size: 10px;
+      padding: 1px 5px;
+      background: transparent;
+      color: #000;
+      text-align: center;
+    }
+    .desktop-icon .label.selected {
+      background: #000;
+      color: #fff;
+    }
+    .desktop-icon svg.selected {
+      filter: brightness(.72);
+    }
+
+    /* App window */
+    #app-window {
+      position: absolute;
+      background: #fff;
+      border: 1px solid #000;
+      box-shadow: 2px 2px 0 rgba(0,0,0,.55);
+      z-index: 20;
+    }
+    #app-window.hidden {
+      display: none;
+    }
+    #title-bar {
+      position: relative;
+      height: 22px;
+      border-bottom: 1px solid #000;
+      display: flex;
+      align-items: center;
+      background: repeating-linear-gradient(#000 0 1px, #fff 1px 3px);
+      cursor: default;
+    }
+    #close-box, #zoom-box {
+      width: 13px;
+      height: 13px;
+      background: #fff;
+      border: 1px solid #000;
+      box-shadow: 0 0 0 2px #fff;
+      cursor: default;
+    }
+    #close-box {
+      margin-left: 8px;
+    }
+    #zoom-box {
+      margin-left: auto;
+      margin-right: 8px;
+      position: relative;
+    }
+    #zoom-box .zoom-mark {
+      position: absolute;
+      top: 0; left: 0;
+      width: 7px; height: 7px;
+      border-right: 1px solid #000;
+      border-bottom: 1px solid #000;
+    }
+    #win-title {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      padding: 0 12px;
+      font-size: 11px;
+      letter-spacing: .5px;
+    }
+    #info-strip {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 12px;
+      border-bottom: 1px solid #000;
+      font-size: 10px;
+      background: #fff;
+    }
+    #win-body {
+      padding: 20px 22px 12px;
+    }
+    #win-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    #win-header .heading {
+      font-size: 14px;
+    }
+    #win-header .version {
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      opacity: .6;
+    }
+    #display-box {
+      border: 1px solid #000;
+      background: #fff;
+      padding: 16px;
+      min-height: 104px;
+      display: flex;
+      align-items: center;
+      box-shadow: inset 1px 1px 0 rgba(0,0,0,.35);
+    }
+    #display-box .excuse-text {
+      font-family: 'VT323', monospace;
+      font-size: 25px;
+      line-height: 1.15;
+      color: #000;
+    }
+    #display-box .prompt-text {
+      font-family: 'VT323', monospace;
+      font-size: 22px;
+      line-height: 1.2;
+      opacity: .5;
+    }
+    .caret {
+      display: inline-block;
+      width: 12px;
+      height: 19px;
+      background: #000;
+      margin-left: 2px;
+      transform: translateY(2px);
+      animation: blink 1s steps(1) infinite;
+    }
+    #button-row {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 16px;
+      margin-top: 20px;
+    }
+    #copied-msg {
+      font-family: 'VT323', monospace;
+      font-size: 17px;
+      margin-right: auto;
+      opacity: 0;
+    }
+    #copy-btn {
+      font-size: 11px;
+      padding: 7px 16px;
+      border: 1px solid #000;
+      border-radius: 10px;
+      background: #fff;
+      color: #000;
+      cursor: default;
+    }
+    #new-excuse-btn {
+      font-size: 11px;
+      padding: 7px 18px;
+      border: 2px solid #000;
+      border-radius: 12px;
+      box-shadow: 0 0 0 2px #fff, 0 0 0 4px #000;
+      background: #fff;
+      color: #000;
+      cursor: default;
+    }
+    #new-excuse-btn.pressed {
+      background: #000;
+      color: #fff;
+    }
+    #grow-box-row {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 3px 3px;
+    }
+    #grow-box {
+      width: 15px;
+      height: 15px;
+      border: 1px solid #000;
+      background: #fff;
+      position: relative;
+    }
+    #grow-box .grow-mark {
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 8px; height: 8px;
+      border-top: 1px solid #000;
+      border-left: 1px solid #000;
+    }
+  </style>
 </head>
 <body>
-  <h1>Excuse Generator</h1>
-  <button onclick="generate()">Give me an excuse</button>
-  <button onclick="copyExcuse()">Copy to clipboard</button>
-  <p id="output"></p>
-  <p id="copyStatus"></p>
+  <div id="desktop">
+    <div id="vignette"></div>
+    <div id="menu-overlay"></div>
+
+    <!-- Menu bar -->
+    <div id="menu-bar">
+      <div class="mark">
+        <svg width="15" height="16" viewBox="0 0 12 13">
+          <rect x="0" y="0" width="12" height="2" fill="#67b93e"/>
+          <rect x="0" y="2" width="12" height="2" fill="#f5c518"/>
+          <rect x="0" y="4" width="12" height="2" fill="#ef7d1a"/>
+          <rect x="0" y="6" width="12" height="2" fill="#d23b3b"/>
+          <rect x="0" y="8" width="12" height="2" fill="#8a4fa3"/>
+          <rect x="0" y="10" width="12" height="3" fill="#2f7fc4"/>
+        </svg>
+      </div>
+      <div id="menus-container"></div>
+      <div id="menu-right">
+        <div id="help-btn">?</div>
+        <div id="clock">11:18 am</div>
+      </div>
+    </div>
+
+    <!-- Desktop icons -->
+    <div class="desktop-icon" id="icon-disk" style="top:40px; left:848px;">
+      <svg width="48" height="48" viewBox="0 0 34 34">
+        <rect x="4" y="9" width="26" height="18" rx="1" fill="#e2d3a6" stroke="#6b5320"/>
+        <rect x="4" y="9" width="26" height="4" fill="#efe3bf" stroke="#6b5320"/>
+        <rect x="20" y="16" width="7" height="7" fill="#cdb982" stroke="#6b5320"/>
+        <circle cx="23.5" cy="19.5" r="1.4" fill="#6b5320"/>
+        <line x1="7" y1="17" x2="15" y2="17" stroke="#6b5320"/>
+        <line x1="7" y1="20" x2="15" y2="20" stroke="#6b5320"/>
+      </svg>
+      <div class="label">Macintosh HD</div>
+    </div>
+
+    <div class="desktop-icon" id="icon-folder" style="top:172px; left:848px;">
+      <svg width="48" height="48" viewBox="0 0 34 34">
+        <path d="M4 11 L4 7 L13 7 L16 10 L30 10 L30 12 Z" fill="#dcb85e" stroke="#7a5c2e"/>
+        <rect x="4" y="11" width="26" height="16" rx="1" fill="#efce77" stroke="#7a5c2e"/>
+        <rect x="14" y="15" width="7" height="7" fill="#67a844" stroke="#3c5f27"/>
+      </svg>
+      <div class="label">Excuses</div>
+    </div>
+
+    <div class="desktop-icon" id="icon-trash" style="top:304px; left:848px;">
+      <svg width="48" height="48" viewBox="0 0 34 34">
+        <path class="trash-full-bits" style="display:none" d="M12 8 L11 4 L14 5 L15 3 L18 5 L20 3 L21 6 L23 4 L22 8 Z" fill="#fff" stroke="#555"/>
+        <rect x="8" y="7" width="18" height="3" rx="1" fill="#d7d7d7" stroke="#555"/>
+        <rect x="14" y="4" width="6" height="3" fill="#d7d7d7" stroke="#555"/>
+        <path d="M10 10 L24 10 L22 29 L12 29 Z" fill="#e2e2e2" stroke="#555"/>
+        <line x1="14" y1="13" x2="13.5" y2="26" stroke="#7d7d7d"/>
+        <line x1="17" y1="13" x2="17" y2="26" stroke="#7d7d7d"/>
+        <line x1="20" y1="13" x2="20.5" y2="26" stroke="#7d7d7d"/>
+      </svg>
+      <div class="label">Trash</div>
+    </div>
+
+    <!-- App window -->
+    <div id="app-window" style="top:120px; left:150px; width:420px;">
+      <div id="title-bar">
+        <div id="close-box"></div>
+        <div id="win-title">Excuse Generator</div>
+        <div id="zoom-box"><div class="zoom-mark"></div></div>
+      </div>
+
+      <div id="info-strip">
+        <span id="excuse-count">12 excuses on file</span>
+        <span id="status-text">Idle</span>
+        <span>&#8734; available</span>
+      </div>
+
+      <div id="win-body">
+        <div id="win-header">
+          <div class="heading">Excuse Generator</div>
+          <div class="version">v1.0</div>
+        </div>
+
+        <div id="display-box">
+          <div class="prompt-text" id="prompt-text">Click "New Excuse" to generate a perfectly reasonable explanation&hellip;</div>
+          <div class="excuse-text" id="excuse-display" style="display:none"></div>
+        </div>
+
+        <div id="button-row">
+          <span id="copied-msg">&#10003; Copied to clipboard</span>
+          <div id="copy-btn">Copy</div>
+          <div id="new-excuse-btn">New Excuse</div>
+        </div>
+      </div>
+
+      <div id="grow-box-row">
+        <div id="grow-box"><div class="grow-mark"></div></div>
+      </div>
+    </div>
+  </div>
 
   <script>
     const excuses = [
@@ -16,20 +445,367 @@
       "I was mentally preparing.",
       "Mercury is in retrograde.",
       "My pants tore.",
-      "i love dosa, i ate a lot of it."
+      "i love dosa, i ate a lot of it.",
+      "The floppy disk was corrupted.",
+      "A pigeon flew into my window.",
+      "I got stuck in a revolving door.",
+      "My alarm clock is on strike.",
+      "The dog ate my calendar.",
+      "I was helping a lost tourist.",
+      "There was a squirrel situation."
     ];
-    function generate() {
-      const random = excuses[Math.floor(Math.random() * excuses.length)];
-      document.getElementById("output").innerText = random;
-      document.getElementById("copyStatus").innerText = "";
-    }
-    function copyExcuse() {
-      const text = document.getElementById("output").innerText;
-      if (!text) return;
-      navigator.clipboard.writeText(text).then(() => {
-        document.getElementById("copyStatus").innerText = "Copied!";
+
+    const HOME = {
+      disk: { x: 848, y: 40 },
+      folder: { x: 848, y: 172 },
+      trash: { x: 848, y: 304 }
+    };
+
+    const state = {
+      full: "",
+      shown: "",
+      typing: false,
+      copied: false,
+      openMenu: null,
+      sel: null,
+      genDown: false,
+      winOpen: true,
+      zoom: false,
+      win: { x: 150, y: 120 },
+      icons: {
+        disk: { ...HOME.disk },
+        folder: { ...HOME.folder },
+        trash: { ...HOME.trash }
+      },
+      drag: null
+    };
+
+    let typeTimer = null;
+    let copyTimer = null;
+
+    const desktop = document.getElementById("desktop");
+    const menuOverlay = document.getElementById("menu-overlay");
+    const menusContainer = document.getElementById("menus-container");
+    const appWindow = document.getElementById("app-window");
+    const titleBar = document.getElementById("title-bar");
+    const closeBox = document.getElementById("close-box");
+    const zoomBox = document.getElementById("zoom-box");
+    const statusText = document.getElementById("status-text");
+    const promptText = document.getElementById("prompt-text");
+    const excuseDisplay = document.getElementById("excuse-display");
+    const copiedMsg = document.getElementById("copied-msg");
+    const copyBtn = document.getElementById("copy-btn");
+    const newExcuseBtn = document.getElementById("new-excuse-btn");
+    const clockEl = document.getElementById("clock");
+
+    const iconEls = {
+      disk: document.getElementById("icon-disk"),
+      folder: document.getElementById("icon-folder"),
+      trash: document.getElementById("icon-trash")
+    };
+
+    const menuDefs = [
+      { id: "file", name: "File", items: [
+        { label: "New Excuse", key: "⌘N", action: generate },
+        { label: "Copy Excuse", key: "⌘C", action: copyExcuse },
+        { divider: true },
+        { label: "Open Window", key: "⌘O", action: openWindow },
+        { label: "Close Window", key: "⌘W", action: closeWindow }
+      ]},
+      { id: "edit", name: "Edit", items: [
+        { label: "Undo", key: "⌘Z", disabled: true },
+        { divider: true },
+        { label: "Cut", key: "⌘X", disabled: true },
+        { label: "Copy", key: "⌘C", action: copyExcuse },
+        { label: "Paste", key: "⌘V", disabled: true },
+        { label: "Clear", key: "", disabled: true }
+      ]},
+      { id: "view", name: "View", items: [
+        { label: "by Icon", key: "", action: () => {} },
+        { label: "by Name", key: "", disabled: true },
+        { label: "by Date", key: "", disabled: true }
+      ]},
+      { id: "label", name: "Label", items: [
+        { label: "None", key: "", action: () => {} },
+        { label: "Essential", key: "", disabled: true },
+        { label: "Hot", key: "", disabled: true },
+        { label: "Cool", key: "", disabled: true }
+      ]},
+      { id: "special", name: "Special", items: [
+        { label: "Clean Up Desktop", key: "", action: cleanUpDesktop },
+        { label: "Empty Trash…", key: "", disabled: true },
+        { divider: true },
+        { label: "Restart", key: "", disabled: true },
+        { label: "Shut Down", key: "", disabled: true }
+      ]}
+    ];
+
+    function buildMenus() {
+      menusContainer.innerHTML = "";
+      menuDefs.forEach(menu => {
+        const menuEl = document.createElement("div");
+        menuEl.className = "menu";
+
+        const titleEl = document.createElement("div");
+        titleEl.className = "menu-title";
+        titleEl.textContent = menu.name;
+        titleEl.addEventListener("click", () => toggleMenu(menu.id));
+        titleEl.addEventListener("mouseenter", () => hoverMenu(menu.id));
+
+        const dropdownEl = document.createElement("div");
+        dropdownEl.className = "menu-dropdown";
+
+        menu.items.forEach(it => {
+          if (it.divider) {
+            const div = document.createElement("div");
+            div.className = "menu-divider";
+            dropdownEl.appendChild(div);
+            return;
+          }
+          const itemEl = document.createElement("div");
+          itemEl.className = "menu-item" + (it.disabled ? " disabled" : "");
+          const labelSpan = document.createElement("span");
+          labelSpan.textContent = it.label;
+          const keySpan = document.createElement("span");
+          keySpan.textContent = it.key || "";
+          itemEl.appendChild(labelSpan);
+          itemEl.appendChild(keySpan);
+          if (!it.disabled) {
+            itemEl.addEventListener("mouseenter", () => itemEl.classList.add("hover"));
+            itemEl.addEventListener("mouseleave", () => itemEl.classList.remove("hover"));
+            itemEl.addEventListener("click", () => {
+              it.action();
+              closeMenus();
+            });
+          }
+          dropdownEl.appendChild(itemEl);
+        });
+
+        menuEl.appendChild(titleEl);
+        menuEl.appendChild(dropdownEl);
+        menusContainer.appendChild(menuEl);
+
+        menu._titleEl = titleEl;
+        menu._dropdownEl = dropdownEl;
       });
     }
+
+    function toggleMenu(id) {
+      state.openMenu = state.openMenu === id ? null : id;
+      renderMenus();
+    }
+    function hoverMenu(id) {
+      if (state.openMenu != null) {
+        state.openMenu = id;
+        renderMenus();
+      }
+    }
+    function closeMenus() {
+      state.openMenu = null;
+      renderMenus();
+    }
+    function renderMenus() {
+      menuOverlay.style.display = state.openMenu != null ? "block" : "none";
+      menuDefs.forEach(menu => {
+        const open = state.openMenu === menu.id;
+        menu._titleEl.classList.toggle("open", open);
+        menu._dropdownEl.classList.toggle("open", open);
+      });
+    }
+
+    menuOverlay.addEventListener("click", closeMenus);
+
+    function openWindow() {
+      state.winOpen = true;
+      renderWindow();
+    }
+    function closeWindow(e) {
+      if (e) e.stopPropagation();
+      state.winOpen = false;
+      state.openMenu = null;
+      renderWindow();
+      renderMenus();
+    }
+    function toggleZoom(e) {
+      if (e) e.stopPropagation();
+      state.zoom = !state.zoom;
+      renderWindow();
+    }
+
+    function generate() {
+      const pick = excuses[Math.floor(Math.random() * excuses.length)];
+      clearInterval(typeTimer);
+      state.full = pick;
+      state.shown = pick;
+      state.typing = true;
+      state.copied = false;
+      state.winOpen = true;
+      renderExcuse();
+      renderWindow();
+
+      let i = 0;
+      state.shown = "";
+      typeTimer = setInterval(() => {
+        i++;
+        state.shown = pick.slice(0, i);
+        renderExcuse();
+        if (i >= pick.length) {
+          clearInterval(typeTimer);
+          state.typing = false;
+          renderExcuse();
+        }
+      }, 26);
+    }
+
+    function copyExcuse() {
+      if (!state.full) return;
+      navigator.clipboard.writeText(state.full).catch(() => {});
+      state.copied = true;
+      renderCopied();
+      clearTimeout(copyTimer);
+      copyTimer = setTimeout(() => {
+        state.copied = false;
+        renderCopied();
+      }, 1600);
+    }
+
+    function cleanUpDesktop() {
+      state.icons.disk = { ...HOME.disk };
+      state.icons.folder = { ...HOME.folder };
+      state.icons.trash = { ...HOME.trash };
+      state.sel = null;
+      renderIcons();
+    }
+
+    function selectIcon(id) {
+      state.sel = state.sel === id ? null : id;
+      renderIcons();
+    }
+
+    function renderExcuse() {
+      const hasExcuse = !!state.full;
+      promptText.style.display = hasExcuse ? "none" : "block";
+      excuseDisplay.style.display = hasExcuse ? "block" : "none";
+      if (hasExcuse) {
+        excuseDisplay.innerHTML = '"' + escapeHtml(state.shown) + '"' +
+          (state.typing ? '<span class="caret"></span>' : "");
+      }
+      statusText.textContent = state.typing ? "Generating…" : (state.full ? "Ready" : "Idle");
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function renderCopied() {
+      copiedMsg.style.opacity = state.copied ? "1" : "0";
+    }
+
+    function renderWindow() {
+      appWindow.classList.toggle("hidden", !state.winOpen);
+      appWindow.style.left = state.win.x + "px";
+      appWindow.style.top = state.win.y + "px";
+      appWindow.style.width = (state.zoom ? 520 : 420) + "px";
+    }
+
+    function renderIcons() {
+      Object.keys(iconEls).forEach(id => {
+        const el = iconEls[id];
+        const pos = state.icons[id];
+        el.style.left = pos.x + "px";
+        el.style.top = pos.y + "px";
+        const selected = state.sel === id;
+        el.querySelector(".label").classList.toggle("selected", selected);
+        el.querySelector("svg").classList.toggle("selected", selected);
+      });
+    }
+
+    function updateClock() {
+      const d = new Date();
+      let h = d.getHours();
+      const m = ("0" + d.getMinutes()).slice(-2);
+      const ap = h >= 12 ? "pm" : "am";
+      h = h % 12;
+      if (h === 0) h = 12;
+      clockEl.textContent = h + ":" + m + " " + ap;
+    }
+
+    // Dragging
+    function startWinDrag(e) {
+      e.preventDefault();
+      state.drag = { type: "win", offX: e.clientX - state.win.x, offY: e.clientY - state.win.y };
+    }
+    function startIconDrag(id) {
+      return function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        state.drag = { type: "icon", id, moved: false, offX: e.clientX - state.icons[id].x, offY: e.clientY - state.icons[id].y };
+      };
+    }
+    function clickIcon(id) {
+      return function () {
+        const dg = state.drag;
+        if (dg && dg.type === "icon" && dg.id === id && dg.moved) return;
+        selectIcon(id);
+      };
+    }
+    window.addEventListener("mousemove", (e) => {
+      const dg = state.drag;
+      if (!dg) return;
+      const x = e.clientX - dg.offX;
+      const y = Math.max(28, e.clientY - dg.offY);
+      if (dg.type === "win") {
+        state.win = { x, y };
+        renderWindow();
+      } else {
+        dg.moved = true;
+        state.sel = dg.id;
+        state.icons[dg.id] = { x, y };
+        renderIcons();
+      }
+    });
+    desktop.addEventListener("mouseup", () => {
+      state.drag = null;
+    });
+
+    // Wire up events
+    titleBar.addEventListener("mousedown", startWinDrag);
+    closeBox.addEventListener("mousedown", closeWindow);
+    zoomBox.addEventListener("mousedown", toggleZoom);
+    iconEls.disk.addEventListener("mousedown", startIconDrag("disk"));
+    iconEls.disk.addEventListener("click", clickIcon("disk"));
+    iconEls.folder.addEventListener("mousedown", startIconDrag("folder"));
+    iconEls.folder.addEventListener("click", clickIcon("folder"));
+    iconEls.folder.addEventListener("dblclick", openWindow);
+    iconEls.trash.addEventListener("mousedown", startIconDrag("trash"));
+    iconEls.trash.addEventListener("click", clickIcon("trash"));
+
+    copyBtn.addEventListener("click", copyExcuse);
+    newExcuseBtn.addEventListener("mousedown", () => {
+      state.genDown = true;
+      newExcuseBtn.classList.add("pressed");
+    });
+    newExcuseBtn.addEventListener("mouseup", () => {
+      state.genDown = false;
+      newExcuseBtn.classList.remove("pressed");
+    });
+    newExcuseBtn.addEventListener("mouseleave", () => {
+      state.genDown = false;
+      newExcuseBtn.classList.remove("pressed");
+    });
+    newExcuseBtn.addEventListener("click", generate);
+
+    // Init
+    buildMenus();
+    renderMenus();
+    renderWindow();
+    renderIcons();
+    renderExcuse();
+    renderCopied();
+    updateClock();
+    setInterval(updateClock, 10000);
   </script>
 </body>
 </html>
